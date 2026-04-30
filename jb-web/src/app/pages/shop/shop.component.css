@@ -1,0 +1,51 @@
+/* Carousel arc geometry */
+.carrousel-container {
+  position: relative;
+  width: 0;
+  height: 100vh;
+}
+
+.shoe-node {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 140px;
+  height: 140px;
+  margin-top: -70px;
+  margin-left: -70px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  outline: none;
+}
+
+.shoe-node:nth-child(1) { transform: rotate(-60deg) translateX(30vh) rotate(60deg); }
+.shoe-node:nth-child(2) { transform: rotate(-30deg) translateX(30vh) rotate(30deg); }
+.shoe-node:nth-child(3) { transform: rotate(0deg) translateX(30vh) rotate(0deg); }
+.shoe-node:nth-child(4) { transform: rotate(30deg) translateX(30vh) rotate(-30deg); }
+.shoe-node:nth-child(5) { transform: rotate(60deg) translateX(30vh) rotate(-60deg); }
+
+.shoe-node:focus-visible {
+  filter: drop-shadow(0 0 8px white);
+}
+
+.shoe-node img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.shoe-node.active {
+  transform: scale(1.25) translateX(30vh);
+  z-index: 10;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+}
+
+/* Fade-in for info card */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}

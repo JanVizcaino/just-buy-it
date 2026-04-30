@@ -1,0 +1,170 @@
+<div class="relative w-full h-screen bg-black overflow-hidden text-white font-sans">
+  <ngx-sonner-toaster position="bottom-right" theme="dark" />
+
+  <!-- Top Bar -->
+  <div class="absolute top-8 left-0 w-full flex justify-center z-20">
+    <h1 class="text-5xl tracking-wide" aria-label="Just Buy It">
+      JUST <span class="font-bold italic">BUY IT</span>
+    </h1>
+  </div>
+
+  <!-- Semicírculo Izquierdo -->
+  <div
+    class="absolute top-1/2 -left-[30vh] w-[60vh] h-[60vh] bg-zinc-500 rounded-full -translate-y-1/2 z-0"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Menú / Filtros Top Left -->
+  <button
+    class="absolute top-16 left-16 w-20 h-20 bg-zinc-500 rounded-full flex items-center justify-center z-30 hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
+    (click)="toggleCategories()"
+    [attr.aria-expanded]="showCategories()"
+    aria-label="Open categories filter"
+    aria-controls="categories-panel"
+  >
+    <lucide-icon name="menu" [size]="32" aria-hidden="true" />
+  </button>
+
+  <!-- Panel de Categorías -->
+  @if (showCategories()) {
+    <div
+      id="categories-panel"
+      class="absolute top-40 left-16 z-30 bg-zinc-700 rounded-xl p-4 shadow-2xl min-w-40"
+      role="dialog"
+      aria-label="Categories"
+    >
+      <p class="text-zinc-300 text-xs uppercase tracking-widest mb-3">Categorías</p>
+      @for (cat of categories(); track cat.id) {
+        <button
+          class="block w-full text-left text-white py-2 px-3 rounded hover:bg-zinc-600 transition-colors text-sm focus-visible:outline-2 focus-visible:outline-white"
+          (click)="filterByCategory(cat.id)"
+        >
+          {{ cat.name }}
+        </button>
+      } @empty {
+        <p class="text-zinc-400 text-sm">Sin categorías</p>
+      }
+    </div>
+  }
+
+  <!-- Nodos del Carrusel -->
+  <div
+    class="absolute top-1/2 left-0 -translate-y-1/2 z-10 carrousel-container"
+    role="listbox"
+    aria-label="Product carousel"
+  >
+    @for (item of carouselProducts(); track item.product.id) {
+      <div
+        class="shoe-node"
+        [class.active]="item.isActive"
+        (click)="selectProduct(item.originalIndex)"
+        (keydown.enter)="selectProduct(item.originalIndex)"
+        (keydown.space)="selectProduct(item.originalIndex)"
+        role="option"
+        [attr.aria-selected]="item.isActive"
+        [attr.aria-label]="item.product.name"
+        tabindex="0"
+      >
+        <img [src]="item.product.image_url" [alt]="item.product.name" />
+      </div>
+    }
+  </div>
+
+  <!-- Centro: Vista dinámica -->
+  <div class="absolute inset-0 flex items-center justify-center pl-[15vw] z-10 pointer-events-none">
+    <div class="pointer-events-auto">
+      @if (selectedProduct(); as product) {
+        @if (viewMode() === 'image') {
+          <img
+            [src]="product.image_url"
+            [alt]="product.name"
+            class="w-[30rem] drop-shadow-2xl transition-transform duration-500 hover:scale-105"
+          />
+        } @else {
+          <div class="bg-zinc-500 p-10 rounded-xl max-w-2xl text-white shadow-2xl fade-in">
+            <h2 class="text-3xl uppercase font-light mb-6">{{ product.name }}</h2>
+            <p class="text-zinc-200 leading-relaxed">{{ product.description }}</p>
+            @if (product.price) {
+              <p class="mt-6 text-2xl font-semibold">{{ product.price.toFixed(2) }} €</p>
+            }
+          </div>
+        }
+      } @else {
+        <p class="text-zinc-400 text-lg tracking-widest">Cargando productos...</p>
+      }
+    </div>
+  </div>
+
+  <!-- Controles Inferiores -->
+  <div class="absolute bottom-12 right-24 flex items-end gap-16 z-20">
+
+    <!-- Tallas -->
+    <div class="grid grid-cols-5 gap-3" role="group" aria-label="Select size">
+      @for (size of sizes; track size) {
+        <button
+          class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-white"
+          [class]="selectedSize() === size
+            ? 'bg-white text-black'
+            : 'bg-zinc-500 text-white hover:bg-zinc-400'"
+          (click)="selectSize(size)"
+          [attr.aria-label]="'Talla ' + size"
+          [attr.aria-pressed]="selectedSize() === size"
+        >
+          {{ size }}
+        </button>
+      }
+    </div>
+
+    <!-- Toggle Vista + Carrito -->
+    <div class="flex flex-col gap-4 items-end">
+
+      <!-- Toggle eye / info -->
+      <div class="flex bg-zinc-500 rounded-full p-1" role="group" aria-label="View mode">
+        <button
+          (click)="viewMode.set('image')"
+          [class]="viewMode() === 'image'
+            ? 'bg-zinc-300 text-black px-6 py-2 rounded-full transition-colors flex items-center justify-center'
+            : 'px-6 py-2 rounded-full transition-colors flex items-center justify-center hover:bg-zinc-400'"
+          aria-label="Image view"
+          [attr.aria-pressed]="viewMode() === 'image'"
+        >
+          <lucide-icon name="eye" [size]="20" aria-hidden="true" />
+        </button>
+        <button
+          (click)="viewMode.set('info')"
+          [class]="viewMode() === 'info'
+            ? 'bg-zinc-300 text-black px-6 py-2 rounded-full transition-colors flex items-center justify-center'
+            : 'px-6 py-2 rounded-full transition-colors flex items-center justify-center hover:bg-zinc-400'"
+          aria-label="Info view"
+          [attr.aria-pressed]="viewMode() === 'info'"
+        >
+          <lucide-icon name="info" [size]="20" aria-hidden="true" />
+        </button>
+      </div>
+
+      <!-- Carrito + Arrow -->
+      <div class="flex items-center gap-3">
+        <button
+          (click)="addToCart()"
+          class="relative w-12 h-12 bg-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
+          aria-label="Add to cart"
+        >
+          <lucide-icon name="shopping-cart" [size]="20" aria-hidden="true" />
+          @if (cartCount() > 0) {
+            <span
+              class="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs rounded-full flex items-center justify-center font-bold"
+              aria-live="polite"
+              [attr.aria-label]="cartCount() + ' items in cart'"
+            >{{ cartCount() }}</span>
+          }
+        </button>
+        <button
+          class="w-10 h-10 bg-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
+          aria-label="Go to cart"
+        >
+          <lucide-icon name="arrow-right" [size]="18" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
