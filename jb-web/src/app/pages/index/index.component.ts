@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-index',
@@ -12,22 +13,47 @@ import { RouterLink } from '@angular/router';
       </h1>
       <nav
         class="mt-8 flex gap-10 text-zinc-400 text-sm tracking-widest"
-        aria-label="Main navigation"
+        aria-label="Menú principal"
       >
         <a
           routerLink="/shop"
           class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
         >shop</a>
-        <a
-          href="#"
-          class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
-        >login</a>
-        <a
-          href="#"
-          class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
-        >about us</a>
+
+        @if (auth.isAdmin()) {
+          <a
+            routerLink="/admin"
+            class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
+          >admin</a>
+        }
+
+        @if (auth.isUser()) {
+          <a
+            routerLink="/orders"
+            class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
+          >mis pedidos</a>
+        }
+
+        @if (auth.isLoggedIn()) {
+          <button
+            (click)="auth.logout()"
+            class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
+            aria-label="Cerrar sesión"
+          >salir</button>
+        } @else {
+          <a
+            routerLink="/login"
+            class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
+          >login</a>
+          <a
+            routerLink="/register"
+            class="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
+          >register</a>
+        }
       </nav>
     </div>
   `,
 })
-export class IndexComponent {}
+export class IndexComponent {
+  protected readonly auth = inject(AuthService);
+}

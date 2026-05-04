@@ -1,9 +1,33 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject, computed } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map, startWith } from 'rxjs';
+import { NavbarComponent } from './components/navbar/navbar.component';
+import { CartSidebarComponent } from './components/cart-sidebar/cart-sidebar.component';
+import { NgxSonnerToaster } from 'ngx-sonner';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  template: '<router-outlet />',
+  imports: [RouterOutlet, NavbarComponent, CartSidebarComponent, NgxSonnerToaster],
+  template: `
+    <ngx-sonner-toaster position="top-center" theme="dark" />
+    @if (showNavbar()) {
+      <app-navbar />
+    }
+    <app-cart-sidebar />
+    <router-outlet />
+  `,
 })
-export class App {}
+export class App {
+  private readonly router = inject(Router);
+
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => (e as NavigationEnd).urlAfterRedirects),
+      startWith(this.router.url),
+    ),
+  );
+
+  protected readonly showNavbar = computed(() => this.currentUrl() !== '/');
+}

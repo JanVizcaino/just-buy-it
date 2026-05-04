@@ -1,5 +1,4 @@
-<div class="relative w-full h-screen bg-black overflow-hidden text-white font-sans">
-  <ngx-sonner-toaster position="bottom-right" theme="dark" />
+<div class="relative w-full h-[calc(100vh-65px)] bg-black overflow-hidden text-white font-sans">
 
   <!-- Top Bar -->
   <div class="absolute top-8 left-0 w-full flex justify-center z-20">
@@ -19,28 +18,42 @@
     class="absolute top-16 left-16 w-20 h-20 bg-zinc-500 rounded-full flex items-center justify-center z-30 hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
     (click)="toggleCategories()"
     [attr.aria-expanded]="showCategories()"
-    aria-label="Open categories filter"
+    aria-label="Abrir filtros"
     aria-controls="categories-panel"
   >
     <lucide-icon name="menu" [size]="32" aria-hidden="true" />
   </button>
 
-  <!-- Panel de Categorías -->
+  <!-- Panel de Categorías + Buscador -->
   @if (showCategories()) {
     <div
       id="categories-panel"
-      class="absolute top-40 left-16 z-30 bg-zinc-700 rounded-xl p-4 shadow-2xl min-w-40"
+      class="absolute top-40 left-16 z-30 bg-zinc-700 rounded-xl p-4 shadow-2xl w-64"
       role="dialog"
-      aria-label="Categories"
+      aria-label="Filtros de búsqueda"
     >
-      <p class="text-zinc-300 text-xs uppercase tracking-widest mb-3">Categorías</p>
+      <!-- Buscador de texto -->
+      <p class="text-zinc-300 text-xs uppercase tracking-widest mb-2">Buscar</p>
+      <input
+        type="search"
+        [ngModel]="searchText()"
+        (ngModelChange)="onSearch($event)"
+        placeholder="Buscar zapatillas..."
+        class="w-full bg-zinc-800 text-white placeholder-zinc-500 px-3 py-2 rounded-lg text-sm border border-zinc-600 focus:border-zinc-400 focus:outline-none mb-4"
+        aria-label="Buscar productos"
+      />
+
+      <!-- Categorías -->
+      <p class="text-zinc-300 text-xs uppercase tracking-widest mb-2">Categorías</p>
+      <button
+        class="block w-full text-left text-white py-1.5 px-3 rounded hover:bg-zinc-600 transition-colors text-sm focus-visible:outline-2 focus-visible:outline-white"
+        (click)="filterByCategory(null)"
+      >Todas</button>
       @for (cat of categories(); track cat.id) {
         <button
-          class="block w-full text-left text-white py-2 px-3 rounded hover:bg-zinc-600 transition-colors text-sm focus-visible:outline-2 focus-visible:outline-white"
-          (click)="filterByCategory(cat.id)"
-        >
-          {{ cat.name }}
-        </button>
+          class="block w-full text-left text-white py-1.5 px-3 rounded hover:bg-zinc-600 transition-colors text-sm focus-visible:outline-2 focus-visible:outline-white"
+          (click)="filterByCategory(cat.slug)"
+        >{{ cat.name }}</button>
       } @empty {
         <p class="text-zinc-400 text-sm">Sin categorías</p>
       }
@@ -51,7 +64,7 @@
   <div
     class="absolute top-1/2 left-0 -translate-y-1/2 z-10 carrousel-container"
     role="listbox"
-    aria-label="Product carousel"
+    aria-label="Carrusel de productos"
   >
     @for (item of carouselProducts(); track item.product.id) {
       <div
@@ -65,7 +78,13 @@
         [attr.aria-label]="item.product.name"
         tabindex="0"
       >
-        <img [src]="item.product.image_url" [alt]="item.product.name" />
+        @if (item.product.image_url) {
+          <img [src]="item.product.image_url" [alt]="item.product.name" />
+        } @else {
+          <div class="w-full h-full rounded-full bg-zinc-600 flex items-center justify-center text-xs text-zinc-400 text-center p-2">
+            {{ item.product.name }}
+          </div>
+        }
       </div>
     }
   </div>
@@ -75,17 +94,29 @@
     <div class="pointer-events-auto">
       @if (selectedProduct(); as product) {
         @if (viewMode() === 'image') {
-          <img
-            [src]="product.image_url"
-            [alt]="product.name"
-            class="w-[30rem] drop-shadow-2xl transition-transform duration-500 hover:scale-105"
-          />
+          @if (product.image_url) {
+            <img
+              [src]="product.image_url"
+              [alt]="product.name"
+              class="w-[30rem] drop-shadow-2xl transition-transform duration-500 hover:scale-105"
+            />
+          } @else {
+            <div class="w-[30rem] h-[30rem] flex items-center justify-center text-zinc-500 text-lg">
+              {{ product.name }}
+            </div>
+          }
         } @else {
           <div class="bg-zinc-500 p-10 rounded-xl max-w-2xl text-white shadow-2xl fade-in">
-            <h2 class="text-3xl uppercase font-light mb-6">{{ product.name }}</h2>
-            <p class="text-zinc-200 leading-relaxed">{{ product.description }}</p>
-            @if (product.price) {
-              <p class="mt-6 text-2xl font-semibold">{{ product.price.toFixed(2) }} €</p>
+            <h2 class="text-3xl uppercase font-light mb-2">{{ product.name }}</h2>
+            @if (product.brand) {
+              <p class="text-zinc-300 text-sm uppercase tracking-widest mb-4">{{ product.brand }}</p>
+            }
+            @if (product.description) {
+              <p class="text-zinc-200 leading-relaxed mb-4">{{ product.description }}</p>
+            }
+            <p class="text-2xl font-semibold">{{ product.price.toFixed(2) }} €</p>
+            @if (product.stock !== undefined) {
+              <p class="text-zinc-400 text-sm mt-1">Stock: {{ product.stock }}</p>
             }
           </div>
         }
@@ -98,20 +129,31 @@
   <!-- Controles Inferiores -->
   <div class="absolute bottom-12 right-24 flex items-end gap-16 z-20">
 
-    <!-- Tallas -->
-    <div class="grid grid-cols-5 gap-3" role="group" aria-label="Select size">
-      @for (size of sizes; track size) {
-        <button
-          class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-white"
-          [class]="selectedSize() === size
-            ? 'bg-white text-black'
-            : 'bg-zinc-500 text-white hover:bg-zinc-400'"
-          (click)="selectSize(size)"
-          [attr.aria-label]="'Talla ' + size"
-          [attr.aria-pressed]="selectedSize() === size"
-        >
-          {{ size }}
-        </button>
+    <!-- Tallas del producto seleccionado -->
+    <div role="group" aria-label="Seleccionar talla">
+      @if (productSizes().length > 0) {
+        <p class="text-zinc-400 text-xs mb-2 text-center">
+          Talla: <span class="text-white">{{ selectedSize() ?? '—' }}</span>
+        </p>
+        <div class="grid grid-cols-5 gap-2">
+          @for (size of productSizes(); track size) {
+            <button
+              class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-white"
+              [class]="selectedSize() === size
+                ? 'bg-white text-black'
+                : 'bg-zinc-500 text-white hover:bg-zinc-400'"
+              (click)="selectSize(size)"
+              [attr.aria-label]="'Talla ' + size"
+              [attr.aria-pressed]="selectedSize() === size"
+            >{{ size }}</button>
+          }
+        </div>
+      } @else {
+        <div class="grid grid-cols-5 gap-2" aria-hidden="true">
+          @for (size of [37,38,39,40,41,42,43,44,45,46]; track size) {
+            <div class="w-10 h-10 rounded-full bg-zinc-800 opacity-30"></div>
+          }
+        </div>
       }
     </div>
 
@@ -119,13 +161,13 @@
     <div class="flex flex-col gap-4 items-end">
 
       <!-- Toggle eye / info -->
-      <div class="flex bg-zinc-500 rounded-full p-1" role="group" aria-label="View mode">
+      <div class="flex bg-zinc-500 rounded-full p-1" role="group" aria-label="Modo de vista">
         <button
           (click)="viewMode.set('image')"
           [class]="viewMode() === 'image'
             ? 'bg-zinc-300 text-black px-6 py-2 rounded-full transition-colors flex items-center justify-center'
             : 'px-6 py-2 rounded-full transition-colors flex items-center justify-center hover:bg-zinc-400'"
-          aria-label="Image view"
+          aria-label="Ver imagen"
           [attr.aria-pressed]="viewMode() === 'image'"
         >
           <lucide-icon name="eye" [size]="20" aria-hidden="true" />
@@ -135,35 +177,30 @@
           [class]="viewMode() === 'info'
             ? 'bg-zinc-300 text-black px-6 py-2 rounded-full transition-colors flex items-center justify-center'
             : 'px-6 py-2 rounded-full transition-colors flex items-center justify-center hover:bg-zinc-400'"
-          aria-label="Info view"
+          aria-label="Ver información"
           [attr.aria-pressed]="viewMode() === 'info'"
         >
           <lucide-icon name="info" [size]="20" aria-hidden="true" />
         </button>
       </div>
 
-      <!-- Carrito + Arrow -->
+      <!-- Carrito + Arrow (detalle) -->
       <div class="flex items-center gap-3">
         <button
           (click)="addToCart()"
           class="relative w-12 h-12 bg-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
-          aria-label="Add to cart"
+          aria-label="Añadir al carrito"
         >
           <lucide-icon name="shopping-cart" [size]="20" aria-hidden="true" />
           @if (cartCount() > 0) {
             <span
               class="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs rounded-full flex items-center justify-center font-bold"
               aria-live="polite"
-              [attr.aria-label]="cartCount() + ' items in cart'"
+              [attr.aria-label]="cartCount() + ' items en el carrito'"
             >{{ cartCount() }}</span>
           }
         </button>
-        <button
-          class="w-10 h-10 bg-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-400 transition-colors focus-visible:outline-2 focus-visible:outline-white"
-          aria-label="Go to cart"
-        >
-          <lucide-icon name="arrow-right" [size]="18" aria-hidden="true" />
-        </button>
+      
       </div>
     </div>
   </div>

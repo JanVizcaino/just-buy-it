@@ -1,0 +1,108 @@
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+import { CartService } from '../../services/cart.service';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  ShoppingCart,
+  CircleUser,
+  LogOut,
+} from 'lucide-angular';
+
+@Component({
+  selector: 'app-navbar',
+  imports: [RouterLink, RouterLinkActive, LucideAngularModule],
+  providers: [
+    {
+      provide: LUCIDE_ICONS,
+      multi: true,
+      useValue: new LucideIconProvider({ ShoppingCart, LogOut, CircleUser }),
+    },
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <nav
+      class="bg-black border-b border-zinc-800 px-6 py-4 flex items-center justify-between"
+      aria-label="Navegación principal"
+    >
+      <a
+        routerLink="/"
+        class="text-white text-xl tracking-widest hover:text-zinc-300 transition-colors"
+        aria-label="Just Buy It - Inicio"
+      >
+        JUST <span class="font-bold italic">BUY IT</span>
+      </a>
+
+      <div class="flex items-center gap-6">
+        <a
+          routerLink="/shop"
+          routerLinkActive="!text-white"
+          class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+          >Catálogo</a
+        >
+
+        @if (auth.isAdmin()) {
+          <a
+            routerLink="/admin"
+            routerLinkActive="!text-white"
+            class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+            >Admin</a
+          >
+        }
+
+        @if (auth.isUser()) {
+          <a
+            routerLink="/orders"
+            routerLinkActive="!text-white"
+            class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+            >Mis Pedidos</a
+          >
+          <button
+            (click)="cart.toggle()"
+            class="relative text-zinc-400 hover:text-white transition-colors"
+            aria-label="Abrir carrito de compras"
+          >
+            <lucide-icon name="shopping-cart" [size]="20" aria-hidden="true" />
+            @if (cart.count() > 0) {
+              <span
+                class="absolute -top-2 -right-2 w-5 h-5 bg-white text-black text-xs rounded-full flex items-center justify-center font-bold"
+                aria-live="polite"
+                [attr.aria-label]="cart.count() + ' productos en el carrito'"
+                >{{ cart.count() }}</span
+              >
+            }
+          </button>
+        }
+          <span class="text-zinc-400">
+                  |
+          </span>
+        @if (auth.isLoggedIn()) {
+          <span class="text-zinc-400 text-sm flex items-center justify-center gap-2">
+            <lucide-icon name="circle-user" class="text-zinc-400" />
+            {{ auth.user()?.full_name }}
+            </span>
+          <button
+            (click)="auth.logout()"
+            class="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 text-sm"
+            aria-label="Cerrar sesión"
+          >
+            <lucide-icon name="log-out" [size]="16" aria-hidden="true" />
+            Salir
+          </button>
+        } @else {
+          <a
+            routerLink="/login"
+            class="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-zinc-200 transition-colors"
+            >Iniciar Sesión</a
+          >
+        }
+      </div>
+    </nav>
+  `,
+})
+export class NavbarComponent {
+  protected readonly auth = inject(AuthService);
+  protected readonly cart = inject(CartService);
+}

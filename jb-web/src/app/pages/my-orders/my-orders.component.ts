@@ -1,0 +1,180 @@
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  OnInit,
+} from '@angular/core';
+import { OrderService, Order } from '../../services/order.service';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  ChevronDown,
+  ChevronUp,
+  Package,
+} from 'lucide-angular';
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-yellow-500/20 text-yellow-300',
+  confirmed: 'bg-blue-500/20 text-blue-300',
+  shipped: 'bg-purple-500/20 text-purple-300',
+  delivered: 'bg-green-500/20 text-green-300',
+  cancelled: 'bg-red-500/20 text-red-300',
+};
+
+@Component({
+  selector: 'app-my-orders',
+  imports: [LucideAngularModule],
+  providers: [
+    {
+      provide: LUCIDE_ICONS,
+      multi: true,
+      useValue: new LucideIconProvider({ ChevronDown, ChevronUp, Package }),
+    },
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="min-h-screen bg-black text-white">
+      <div class="max-w-4xl mx-auto px-6 py-8">
+        <h1 class="text-2xl font-bold mb-8">Mis Pedidos</h1>
+
+        @if (loading()) {
+          <div class="flex justify-center py-20">
+            <p class="text-zinc-400 animate-pulse">Cargando pedidos...</p>
+          </div>
+        } @else if (orders().length === 0) {
+          <div class="flex flex-col items-center justify-center py-20 text-center">
+            <lucide-icon name="package" [size]="56" class="text-zinc-700 mb-4" aria-hidden="true" />
+            <p class="text-zinc-400 text-lg font-medium">Aún no tienes pedidos</p>
+            <p class="text-zinc-600 text-sm mt-2">
+              Explora el catálogo y realiza tu primera compra
+            </p>
+          </div>
+        } @else {
+          <ul class="space-y-4">
+            @for (order of orders(); track order.id) {
+              <li class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800">
+                <button
+                  class="w-full flex items-center justify-between p-5 hover:bg-zinc-800 transition-colors text-left"
+                  (click)="toggleOrder(order.id)"
+                  [attr.aria-expanded]="expandedId() === order.id"
+                  [attr.aria-controls]="'order-items-' + order.id"
+                >
+                  <div class="flex items-center gap-4 flex-wrap">
+                    <div>
+                      <p class="text-white font-medium text-sm">
+                        Pedido #{{ order.id.slice(0, 8).toUpperCase() }}
+                      </p>
+                      <p class="text-zinc-500 text-xs mt-0.5">{{ formatDate(order.created_at) }}</p>
+                    </div>
+                    <span [class]="'px-3 py-1 rounded-full text-xs font-medium ' + statusColor(order.status)">
+                      {{ statusLabel(order.status) }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-white font-bold">{{ order.total_amount.toFixed(2) }}€</span>
+                    <lucide-icon
+                      [name]="expandedId() === order.id ? 'chevron-up' : 'chevron-down'"
+                      [size]="16"
+                      class="text-zinc-500"
+                      aria-hidden="true"
+                    />
+                  </div>
+                </button>
+
+                @if (expandedId() === order.id) {
+                  <div
+                    [id]="'order-items-' + order.id"
+                    class="px-5 pb-5 border-t border-zinc-800"
+                  >
+                    @if (order.shipping_address) {
+                      <p class="text-zinc-500 text-xs mt-4 mb-1">
+                        📍 {{ order.shipping_address }}
+                      </p>
+                    }
+                    @if (order.notes) {
+                      <p class="text-zinc-500 text-xs mb-3">📝 {{ order.notes }}</p>
+                    }
+                    <ul class="space-y-3 mt-4">
+                      @for (item of order.order_items; track item.id) {
+                        <li class="flex items-center gap-3">
+                          @if (item.products.image_url) {
+                            <img
+                              [src]="item.products.image_url"
+                              [alt]="item.products.name"
+                              class="w-12 h-12 object-cover rounded-lg bg-zinc-800 flex-shrink-0"
+                            />
+                          } @else {
+                            <div class="w-12 h-12 bg-zinc-800 rounded-lg flex-shrink-0"></div>
+                          }
+                          <div class="flex-1 min-w-0">
+                            <p class="text-white text-sm font-medium truncate">
+                              {{ item.products.name }}
+                            </p>
+                            <p class="text-zinc-500 text-xs">
+                              Talla {{ item.size }} · {{ item.quantity }}x ·
+                              {{ item.unit_price.toFixed(2) }}€/u
+                            </p>
+                          </div>
+                          <p class="text-white text-sm font-semibold flex-shrink-0">
+                            {{ (item.unit_price * item.quantity).toFixed(2) }}€
+                          </p>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  `,
+})
+export class MyOrdersComponent implements OnInit {
+  private readonly orderService = inject(OrderService);
+
+  protected readonly orders = signal<Order[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly expandedId = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.orderService.getMyOrders().subscribe({
+      next: (orders) => {
+        this.orders.set(orders);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  protected toggleOrder(id: string): void {
+    this.expandedId.update((v) => (v === id ? null : id));
+  }
+
+  protected statusLabel(status: string): string {
+    return STATUS_LABELS[status] ?? status;
+  }
+
+  protected statusColor(status: string): string {
+    return STATUS_COLORS[status] ?? 'bg-zinc-700 text-zinc-300';
+  }
+
+  protected formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+}
