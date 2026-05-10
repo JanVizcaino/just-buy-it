@@ -43,7 +43,7 @@ const STATUS_COLORS: Record<string, string> = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-black text-white">
+    <div class="min-h-screen bg-black dot-pattern text-white">
       <div class="max-w-4xl mx-auto px-6 py-8">
         <h1 class="text-2xl font-bold mb-8">Mis Pedidos</h1>
 
@@ -98,7 +98,7 @@ const STATUS_COLORS: Record<string, string> = {
                   >
                     @if (order.shipping_address) {
                       <p class="text-zinc-500 text-xs mt-4 mb-1">
-                        📍 {{ order.shipping_address }}
+                         {{ order.shipping_address }}
                       </p>
                     }
                     @if (order.notes) {

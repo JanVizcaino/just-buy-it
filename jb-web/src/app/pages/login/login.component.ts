@@ -9,7 +9,7 @@ import { toast } from 'ngx-sonner';
   imports: [ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-black flex items-center justify-center px-4">
+    <div class="min-h-screen bg-black dot-pattern flex items-center justify-center px-4">
       <div class="w-full max-w-md">
         <h1 class="text-white text-3xl font-bold tracking-wider mb-2 text-center">
           Iniciar Sesión

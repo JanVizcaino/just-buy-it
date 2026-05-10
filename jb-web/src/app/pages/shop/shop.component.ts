@@ -19,7 +19,6 @@ import {
   Eye,
   Info,
   ShoppingCart,
-  ArrowRight,
 } from 'lucide-angular';
 import { toast } from 'ngx-sonner';
 
@@ -27,6 +26,7 @@ interface CarouselItem {
   product: Product;
   originalIndex: number;
   isActive: boolean;
+  offset: number;
 }
 
 @Component({
@@ -36,7 +36,7 @@ interface CarouselItem {
     {
       provide: LUCIDE_ICONS,
       multi: true,
-      useValue: new LucideIconProvider({ Menu, Eye, Info, ShoppingCart, ArrowRight }),
+      useValue: new LucideIconProvider({ Menu, Eye, Info, ShoppingCart }),
     },
   ],
   templateUrl: './shop.component.html',
@@ -58,12 +58,8 @@ export class ShopComponent implements OnInit {
   protected readonly searchText = signal('');
 
   protected readonly cartCount = computed(() => this.cartService.count());
-
   protected readonly selectedProduct = computed(() => this.products()[this.selectedIndex()]);
-
-  protected readonly productSizes = computed(
-    () => this.selectedProduct()?.sizes ?? []
-  );
+  protected readonly productSizes = computed(() => this.selectedProduct()?.sizes ?? []);
 
   protected readonly carouselProducts = computed((): CarouselItem[] => {
     const all = this.products();
@@ -74,7 +70,7 @@ export class ShopComponent implements OnInit {
     return Array.from({ length: count }, (_, i) => {
       const offset = i - halfFloor;
       const originalIndex = ((idx + offset) % all.length + all.length) % all.length;
-      return { product: all[originalIndex], originalIndex, isActive: originalIndex === idx };
+      return { product: all[originalIndex], originalIndex, isActive: originalIndex === idx, offset };
     });
   });
 
@@ -111,12 +107,10 @@ export class ShopComponent implements OnInit {
     }
     const product = this.selectedProduct();
     if (!product) return;
-
     if (product.sizes && product.sizes.length > 0 && !this.selectedSize()) {
       toast.error('Selecciona una talla');
       return;
     }
-
     this.cartService.addItem({
       product_id: product.id,
       name: product.name,
@@ -127,13 +121,6 @@ export class ShopComponent implements OnInit {
     });
     toast.success('Añadido al carrito');
     this.cartService.open();
-  }
-
-  protected goToProductDetail(): void {
-    const product = this.selectedProduct();
-    if (product?.slug) {
-      this.router.navigate(['/product', product.slug]);
-    }
   }
 
   protected toggleCategories(): void {

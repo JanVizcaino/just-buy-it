@@ -9,7 +9,7 @@ type AdminTab = 'products' | 'orders';
   imports: [AdminProductsComponent, AdminOrdersComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-black">
+    <div class="min-h-screen bg-black dot-pattern">
       <div class="bg-zinc-900 border-b border-zinc-800 px-6 flex gap-1" role="tablist" aria-label="Secciones de administración">
         <button
           role="tab"

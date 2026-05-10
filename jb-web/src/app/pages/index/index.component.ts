@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="w-full h-screen bg-black flex flex-col items-center justify-center">
+    <div class="w-full h-screen bg-black dot-pattern flex flex-col items-center justify-center">
       <h1 class="text-7xl text-white tracking-wide">
         JUST <span class="font-bold italic">BUY IT</span>
       </h1>

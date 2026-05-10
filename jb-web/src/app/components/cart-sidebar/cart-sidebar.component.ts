@@ -1,4 +1,14 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  viewChild,
+  ElementRef,
+  effect,
+  NgZone,
+  OnDestroy,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
 import { OrderService } from '../../services/order.service';
@@ -10,6 +20,35 @@ import {
   X,
   Trash2,
 } from 'lucide-angular';
+
+interface PlaceSuggestion {
+  text: string;
+  placeId: string;
+}
+
+interface PlacesLibrary {
+  AutocompleteSessionToken: new () => object;
+  AutocompleteSuggestion: {
+    fetchAutocompleteSuggestions(request: {
+      input: string;
+      sessionToken?: object;
+      language?: string;
+    }): Promise<{
+      suggestions: Array<{
+        placePrediction: {
+          text: { toString(): string };
+          placeId: string;
+        } | null;
+      }>;
+    }>;
+  };
+}
+
+declare const google: {
+  maps: {
+    importLibrary(lib: 'places'): Promise<PlacesLibrary>;
+  };
+};
 
 @Component({
   selector: 'app-cart-sidebar',
@@ -62,10 +101,10 @@ import {
                       <img
                         [src]="item.image_url"
                         [alt]="item.name"
-                        class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                        class="w-16 h-16 object-cover rounded-lg shrink-0"
                       />
                     } @else {
-                      <div class="w-16 h-16 bg-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-500 text-xs">
+                      <div class="w-16 h-16 bg-zinc-700 rounded-lg shrink-0 flex items-center justify-center text-zinc-500 text-xs">
                         Sin img
                       </div>
                     }
@@ -77,7 +116,7 @@ import {
                     </div>
                     <button
                       (click)="cart.removeItem(item.product_id, item.size)"
-                      class="text-zinc-500 hover:text-red-400 transition-colors mt-1 flex-shrink-0"
+                      class="text-zinc-500 hover:text-red-400 transition-colors mt-1 shrink-0"
                       [attr.aria-label]="'Eliminar ' + item.name"
                     >
                       <lucide-icon name="trash-2" [size]="16" aria-hidden="true" />
@@ -104,13 +143,39 @@ import {
                 </button>
               } @else {
                 <div class="space-y-3">
-                  <input
-                    type="text"
-                    [(ngModel)]="shippingAddress"
-                    placeholder="Dirección de envío *"
-                    class="w-full bg-zinc-800 text-white placeholder-zinc-500 px-4 py-3 rounded-xl border border-zinc-700 focus:border-zinc-400 focus:outline-none"
-                    aria-label="Dirección de envío"
-                  />
+                  <div class="relative">
+                    <input
+                      #addressInputRef
+                      type="text"
+                      [(ngModel)]="shippingAddress"
+                      placeholder="Dirección de envío *"
+                      class="w-full bg-zinc-800 text-white placeholder-zinc-500 px-4 py-3 rounded-xl border border-zinc-700 focus:border-zinc-400 focus:outline-none"
+                      aria-label="Dirección de envío"
+                      autocomplete="off"
+                      role="combobox"
+                      aria-autocomplete="list"
+                      [attr.aria-expanded]="suggestions().length > 0"
+                      aria-haspopup="listbox"
+                    />
+                    @if (suggestions().length > 0) {
+                      <ul
+                        class="absolute top-full left-0 w-full z-50 mt-1 bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-2xl"
+                        role="listbox"
+                        aria-label="Sugerencias de dirección"
+                      >
+                        @for (s of suggestions(); track s.placeId) {
+                          <li role="option" [attr.aria-selected]="false">
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0 truncate"
+                              (mousedown)="$event.preventDefault()"
+                              (click)="selectSuggestion(s)"
+                            >{{ s.text }}</button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
                   <textarea
                     [(ngModel)]="notes"
                     placeholder="Observaciones (opcional)"
@@ -140,14 +205,100 @@ import {
     }
   `,
 })
-export class CartSidebarComponent {
+export class CartSidebarComponent implements OnDestroy {
   protected readonly cart = inject(CartService);
   private readonly orderService = inject(OrderService);
+  private readonly ngZone = inject(NgZone);
 
   protected readonly showCheckout = signal(false);
   protected readonly isPlacing = signal(false);
+  protected readonly suggestions = signal<PlaceSuggestion[]>([]);
   protected shippingAddress = '';
   protected notes = '';
+
+  private readonly addressInputRef =
+    viewChild<ElementRef<HTMLInputElement>>('addressInputRef');
+
+  private placesLib: PlacesLibrary | null = null;
+  private sessionToken: object | null = null;
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const el = this.addressInputRef();
+      if (el) {
+        this.initAutocomplete(el.nativeElement);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+  }
+
+  private initAutocomplete(inputEl: HTMLInputElement): void {
+    this.loadPlacesLib().then((lib) => {
+      if (!lib) return;
+      this.sessionToken = new lib.AutocompleteSessionToken();
+    });
+
+    inputEl.addEventListener('input', () => {
+      if (this.debounceTimer) clearTimeout(this.debounceTimer);
+      const value = inputEl.value;
+      if (value.length < 3) {
+        this.ngZone.run(() => this.suggestions.set([]));
+        return;
+      }
+      this.debounceTimer = setTimeout(() => this.fetchSuggestions(value), 350);
+    });
+
+    inputEl.addEventListener('blur', () => {
+      setTimeout(() => this.ngZone.run(() => this.suggestions.set([])), 200);
+    });
+  }
+
+  private async loadPlacesLib(): Promise<PlacesLibrary | null> {
+    if (this.placesLib) return this.placesLib;
+    if (typeof google === 'undefined') return null;
+    try {
+      this.placesLib = await google.maps.importLibrary('places');
+      return this.placesLib;
+    } catch {
+      return null;
+    }
+  }
+
+  private async fetchSuggestions(input: string): Promise<void> {
+    const lib = await this.loadPlacesLib();
+    if (!lib || !this.sessionToken) return;
+    try {
+      const { suggestions } = await lib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input,
+        sessionToken: this.sessionToken,
+        language: 'es',
+      });
+      this.ngZone.run(() => {
+        this.suggestions.set(
+          suggestions
+            .filter((s) => s.placePrediction !== null)
+            .map((s) => ({
+              text: s.placePrediction!.text.toString(),
+              placeId: s.placePrediction!.placeId,
+            }))
+        );
+      });
+    } catch {
+      // ignore fetch errors silently
+    }
+  }
+
+  protected selectSuggestion(suggestion: PlaceSuggestion): void {
+    this.shippingAddress = suggestion.text;
+    this.suggestions.set([]);
+    this.loadPlacesLib().then((lib) => {
+      if (lib) this.sessionToken = new lib.AutocompleteSessionToken();
+    });
+  }
 
   protected placeOrder(): void {
     if (!this.shippingAddress.trim()) {

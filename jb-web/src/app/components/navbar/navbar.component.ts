@@ -67,7 +67,7 @@ import {
             <lucide-icon name="shopping-cart" [size]="20" aria-hidden="true" />
             @if (cart.count() > 0) {
               <span
-                class="absolute -top-2 -right-2 w-5 h-5 bg-white text-black text-xs rounded-full flex items-center justify-center font-bold"
+                class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold border-2 border-black animate-pulse-slow"
                 aria-live="polite"
                 [attr.aria-label]="cart.count() + ' productos en el carrito'"
                 >{{ cart.count() }}</span
@@ -75,14 +75,12 @@ import {
             }
           </button>
         }
-          <span class="text-zinc-400">
-                  |
-          </span>
+        <span class="text-zinc-700" aria-hidden="true">|</span>
         @if (auth.isLoggedIn()) {
-          <span class="text-zinc-400 text-sm flex items-center justify-center gap-2">
-            <lucide-icon name="circle-user" class="text-zinc-400" />
+          <span class="text-zinc-400 text-sm flex items-center gap-2">
+            <lucide-icon name="circle-user" [size]="16" aria-hidden="true" />
             {{ auth.user()?.full_name }}
-            </span>
+          </span>
           <button
             (click)="auth.logout()"
             class="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 text-sm"
