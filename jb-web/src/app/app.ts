@@ -9,14 +9,7 @@ import { NgxSonnerToaster } from 'ngx-sonner';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, NavbarComponent, CartSidebarComponent, NgxSonnerToaster],
-  template: `
-    <ngx-sonner-toaster position="top-center" theme="dark" />
-    @if (showNavbar()) {
-      <app-navbar />
-    }
-    <app-cart-sidebar />
-    <router-outlet />
-  `,
+  templateUrl: './app.html',
 })
 export class App {
   private readonly router = inject(Router);

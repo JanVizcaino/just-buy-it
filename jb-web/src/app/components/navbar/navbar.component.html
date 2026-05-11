@@ -1,0 +1,75 @@
+<nav
+  class="bg-black border-b border-zinc-800 px-6 py-4 flex items-center justify-between"
+  aria-label="Navegación principal"
+>
+  <a
+    routerLink="/"
+    class="text-white text-xl tracking-widest hover:text-zinc-300 transition-colors"
+    aria-label="Just Buy It - Inicio"
+  >
+    JUST <span class="font-bold italic">BUY IT</span>
+  </a>
+
+  <div class="flex items-center gap-6">
+    <a
+      routerLink="/shop"
+      routerLinkActive="!text-white"
+      class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+      >Catálogo</a
+    >
+
+    @if (auth.isAdmin()) {
+      <a
+        routerLink="/admin"
+        routerLinkActive="!text-white"
+        class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+        >Admin</a
+      >
+    }
+
+    @if (auth.isUser()) {
+      <a
+        routerLink="/orders"
+        routerLinkActive="!text-white"
+        class="text-zinc-400 hover:text-white transition-colors text-sm tracking-wider"
+        >Mis Pedidos</a
+      >
+      <button
+        (click)="cart.toggle()"
+        class="relative text-zinc-400 hover:text-white transition-colors"
+        aria-label="Abrir carrito de compras"
+      >
+        <lucide-icon name="shopping-cart" [size]="20" aria-hidden="true" />
+        @if (cart.count() > 0) {
+          <span
+            class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold border-2 border-black animate-pulse-slow"
+            aria-live="polite"
+            [attr.aria-label]="cart.count() + ' productos en el carrito'"
+            >{{ cart.count() }}</span
+          >
+        }
+      </button>
+    }
+    <span class="text-zinc-700" aria-hidden="true">|</span>
+    @if (auth.isLoggedIn()) {
+      <span class="text-zinc-400 text-sm flex items-center gap-2">
+        <lucide-icon name="circle-user" [size]="16" aria-hidden="true" />
+        {{ auth.user()?.full_name }}
+      </span>
+      <button
+        (click)="auth.logout()"
+        class="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 text-sm"
+        aria-label="Cerrar sesión"
+      >
+        <lucide-icon name="log-out" [size]="16" aria-hidden="true" />
+        Salir
+      </button>
+    } @else {
+      <a
+        routerLink="/login"
+        class="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-zinc-200 transition-colors"
+        >Iniciar Sesión</a
+      >
+    }
+  </div>
+</nav>

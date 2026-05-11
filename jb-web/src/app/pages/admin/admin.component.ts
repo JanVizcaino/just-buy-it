@@ -8,30 +8,7 @@ type AdminTab = 'products' | 'orders';
   selector: 'app-admin',
   imports: [AdminProductsComponent, AdminOrdersComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="min-h-screen bg-black dot-pattern">
-      <div class="bg-zinc-900 border-b border-zinc-800 px-6 flex gap-1" role="tablist" aria-label="Secciones de administración">
-        <button
-          role="tab"
-          [attr.aria-selected]="activeTab() === 'products'"
-          (click)="activeTab.set('products')"
-          [class]="tabClass('products')"
-        >Productos</button>
-        <button
-          role="tab"
-          [attr.aria-selected]="activeTab() === 'orders'"
-          (click)="activeTab.set('orders')"
-          [class]="tabClass('orders')"
-        >Pedidos</button>
-      </div>
-
-      @if (activeTab() === 'products') {
-        <app-admin-products />
-      } @else {
-        <app-admin-orders />
-      }
-    </div>
-  `,
+  templateUrl: './admin.component.html',
 })
 export class AdminComponent {
   protected readonly activeTab = signal<AdminTab>('products');
